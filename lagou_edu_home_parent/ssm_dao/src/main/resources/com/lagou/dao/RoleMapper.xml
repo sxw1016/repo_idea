@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lagou.dao.RoleMapper">
+<!--    查询所有角色-->
+    <select id="findAllRole" parameterType="com.lagou.domain.Role" resultType="com.lagou.domain.Role">
+        select * from roles
+        <where>
+            <if test="name!=null and name!=''">
+                and name=#{name}
+            </if>
+        </where>
+    </select>
+<!--    根据角色ID查询关联的菜单信息-->
+    <select id="findMenuByRoleId" resultType="int" parameterType="int">
+        SELECT m.`id`FROM roles r
+        LEFT JOIN role_menu_relation rm ON r.id =rm.`role_id`
+        LEFT JOIN menu m ON rm.`menu_id` = m.`id`
+        WHERE r.id = #{id}
+
+    </select>
+
+
+<!--    根据ROleId在中间表和菜单之间的关系-->
+    <delete id="deleteRoleContextMenu" parameterType="int" >
+        delete from role_menu_relation where role_id=#{rid}
+    </delete>
+<!--    为角色分配清单-->
+    <insert id="roleContextMenu" parameterType="com.lagou.domain.Role_menu_relation">
+        insert into role_menu_relation values(null,#{menuId},#{roleId},#{createdTime},#{updatedTime},#{createdBy},#{updatedby})
+
+    </insert>
+
+<!--    删除角色-->
+    <delete id="deleteRole" parameterType="int">
+        delete from roles where id=#{roleid}
+    </delete>
+
+<!--1.查询当前角色拥有的资源分类信息-->
+  <resultMap id="ResourceCategoryMap" type="com.lagou.domain.ResourceCategory">
+      <id property="id" column="id"></id>
+      <result property="name" column="name"></result>
+      <collection property="resourceList" ofType="com.lagou.domain.Resource">
+          <id property="id" column="rsid"></id>
+          <result property="url" column="url"></result>
+          <result property="name" column="name"></result>
+          <result property="description" column="description"></result>
+          <result property="categoryId" column="category_id"></result>
+      </collection>
+  </resultMap>
+
+
+<!--2.查询当前角色拥有的资源信息
+    public List<Integer> findResourceByRoleId(Integer roleId);-->
+    <select id="findResourceByRoleId" resultMap="ResourceCategoryMap" parameterType="int">
+       SELECT resource_category.`id`,resource_category.`name`,resource.`id` rsid,resource.`name`,resource.`url`,resource.`description`,resource.`category_id`
+    FROM
+    roles,resource,role_resource_relation,resource_category
+    WHERE role_resource_relation.`resource_id`=resource.`id` AND role_resource_relation.`role_id`=roles.`id` AND resource_category.`id`=resource.`category_id` AND roles.`id`=#{roleid}
+      </select>
+
+
+<!--根据角色ID 删除角色与资源的关联关系(操作中中间表 role_resource_relation) public void deleteRoleContextResource(Integer roleId);-->
+    <delete id="deleteRoleContextResource" parameterType="int">
+        delete from role_resource_relation where user_id=#{roleid}
+    </delete>
+
+<!--    为角色分配资源public void roleContextResource(RoleResourceRelation roleResourceRelation);
+-->
+    <insert id="roleContextResource" parameterType="com.lagou.domain.RoleResourceRelation">
+        insert into role_resource_relation values(null,#{resourceId},#{roleId},#{createdTime},#{updatedTime},#{createdBy},#{updatedBy})
+    </insert>
+</mapper>
